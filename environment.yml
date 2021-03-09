@@ -1,4 +1,4 @@
-name: common-torch1
+name: common-torch
 channels:
   - pytorch
   - conda-forge
@@ -145,4 +145,4 @@ dependencies:
     - termcolor==1.1.0
     - urllib3==1.26.3
     - werkzeug==1.0.1
-prefix: /beegfs/desy/user/rustigel/opt/Anaconda/envs/common-torch1
+prefix: /prefix/common-torch
