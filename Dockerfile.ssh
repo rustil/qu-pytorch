@@ -1,0 +1,15 @@
+FROM rustil/qu-pytorch:base
+
+RUN useradd -m user \
+  && yes password | passwd user \
+  && chmod -R a+rw /home/user
+
+RUN ( \
+    echo 'LogLevel DEBUG2'; \
+    echo 'PermitRootLogin no'; \
+    echo 'PasswordAuthentication yes'; \
+    echo 'Subsystem sftp /usr/lib/openssh/sftp-server'; \
+  ) > /etc/ssh/sshd_config_clion \
+  && ldconfig
+
+ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_clion"]

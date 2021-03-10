@@ -41,7 +41,7 @@ ENV CONDA_DIR="/opt/miniconda-latest" \
     PATH="/opt/miniconda-latest/bin:$PATH"
 
 
-COPY ./environment.yml .
+COPY ./common-torch.yml .
 
 RUN chmod 777 /opt && chmod a+s /opt \
     && echo "Downloading Miniconda installer ..." \
@@ -51,21 +51,10 @@ RUN chmod 777 /opt && chmod a+s /opt \
     && rm -f "$conda_installer" \
     && conda update -yq -nbase conda \
     && conda init bash \
-    && conda env create -n pytorch --file environment.yml \
+    && conda env create -n common-torch --file common-torch.yml \
     && conda clean -a -y \
     && rm -rf ~/.cache/pip/* \
     && ln -s /opt/miniconda-latest/etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
-RUN useradd -m user \
-  && yes password | passwd user \
-  && chmod -R a+rw /home/user
-
-RUN ( \
-    echo 'LogLevel DEBUG2'; \
-    echo 'PermitRootLogin no'; \
-    echo 'PasswordAuthentication yes'; \
-    echo 'Subsystem sftp /usr/lib/openssh/sftp-server'; \
-  ) > /etc/ssh/sshd_config_clion \
-  && ldconfig
-
-ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_clion"]
+SHELL ["conda", "run", "-n", "common-torch", "/bin/bash", "-c"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "common-torch"]
