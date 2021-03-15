@@ -1,4 +1,5 @@
-FROM ubuntu:20.04
+ARG CUDA=cuda:10.2-devel-ubuntu18.04
+FROM nvidia/CUDA
 SHELL ["/bin/bash", "--login", "-c"]
 
 ENV TZ=Europe/Berlin
@@ -11,31 +12,39 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     gcc-9 \
     g++-9 \
     cmake \
-    git \
     wget \
     tmux \
     clang \
     rsync \
     tar \
     dirmngr\
+    unzip \
     curl \
+    sudo \
+    nano \
 && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9 \
 &&  apt-get install --no-install-recommends -y \
     software-properties-common \
 && apt-get clean
 
-RUN wget \
-    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin \
-    && mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600 \
-    && wget https://developer.download.nvidia.com/compute/cuda/11.1.0/local_installers/cuda-repo-ubuntu2004-11-1-local_11.1.0-455.23.05-1_amd64.deb \
-    && dpkg -i cuda-repo-ubuntu2004-11-1-local_11.1.0-455.23.05-1_amd64.deb \
-    && apt-key add /var/cuda-repo-ubuntu2004-11-1-local/7fa2af80.pub \
-    && apt-get update \
-    && apt-get -y --no-install-recommends install cuda-toolkit-11-1 libnvidia-ml-dev \
-    && apt-get clean
+RUN useradd -m user \
+  && yes password | passwd user \
+  && chmod -R 777 /home/user \
+  && echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user
+
+USER user
+
+# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin \
+#   && mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600 \
+#   && wget https://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb \
+#   && dpkg -i cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb \
+#   && apt-key add /var/cuda-repo-10-2-local-10.2.89-440.33.01/7fa2af80.pub \
+#   && apt-get update \
+#   && apt-get -y --no-install-recommends install cuda-toolkit-10-2 cuda-nvcc-10-2 libnividia-ml-dev \
+#   && apt-get clean
 
 ENV PATH="/opt/miniconda-latest/bin:${PATH}"
-ARG PATH="/opt/miniconda-latest/bin:${PATH}"
+# ARG PATH="/opt/miniconda-latest/bin:${PATH}"
 
 ENV CONDA_DIR="/opt/miniconda-latest" \
     PATH="/opt/miniconda-latest/bin:$PATH"
@@ -55,6 +64,20 @@ RUN chmod 777 /opt && chmod a+s /opt \
     && conda clean -a -y \
     && rm -rf ~/.cache/pip/* \
     && ln -s /opt/miniconda-latest/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+
+
+echo  APEXDIR=/opt/apex; \
+      APEXCOMMIT=e2083df5eb96643c61613b9df48dd4eea6b07690; \
+
+      mkdir $APEXDIR; \
+      chmod 777 $APEXDIR; \
+      cd $APEXDIR; \
+      wget https://github.com/NVIDIA/apex/archive/$APEXCOMMIT.zip; \
+      unzip $APEXCOMMIT.zip; \
+      mv apex-$APEXCOMMIT apex; cd apex; \
+      conda activate common-torch; \
+      pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+
 
 COPY ./entrypoint.sh /usr/local/bin
 RUN chmod 777 /usr/local/bin/entrypoint.sh

@@ -119,7 +119,6 @@ dependencies:
   - ninja=1.10.2=h4bd325d_0
   - notebook=6.2.0=py37h89c1867_0
   - numpy=1.20.1=py37haa41c4c_0
-  - nvidia-apex=0.1=py37h3dc597d_3
   - olefile=0.46=pyh9f0ad1d_1
   - openh264=2.1.1=h780b84a_0
   - openssl=1.1.1j=h7f98852_0
