@@ -1,5 +1,5 @@
 ARG CUDA=cuda:10.2-devel-ubuntu18.04
-FROM nvidia/CUDA
+FROM nvidia/$CUDA
 SHELL ["/bin/bash", "--login", "-c"]
 
 ENV TZ=Europe/Berlin
@@ -8,6 +8,9 @@ ENV TZ=Europe/Berlin
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
 && printf '#!/bin/sh\nexit 0' > /usr/sbin/policy-rc.d \
 && apt-get update \
+&& apt-get install -y software-properties-common \
+&& add-apt-repository ppa:ubuntu-toolchain-r/test \
+&& apt-get update \ 
 && apt-get install -y ssh \
     gcc-9 \
     g++-9 \
@@ -40,7 +43,7 @@ USER user
 #   && dpkg -i cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb \
 #   && apt-key add /var/cuda-repo-10-2-local-10.2.89-440.33.01/7fa2af80.pub \
 #   && apt-get update \
-#   && apt-get -y --no-install-recommends install cuda-toolkit-10-2 cuda-nvcc-10-2 libnividia-ml-dev \
+ #   && apt-get -y --no-install-recommends install cuda-toolkit-10-2 cuda-nvcc-10-2 libnividia-ml-dev \
 #   && apt-get clean
 
 ENV PATH="/opt/miniconda-latest/bin:${PATH}"
@@ -52,7 +55,7 @@ ENV CONDA_DIR="/opt/miniconda-latest" \
 
 COPY ./common-torch.yml .
 
-RUN chmod 777 /opt && chmod a+s /opt \
+RUN sudo chmod 777 /opt && sudo chmod a+s /opt \
     && echo "Downloading Miniconda installer ..." \
     && conda_installer="/tmp/miniconda.sh" \
     && curl -fsSL --retry 5 -o "$conda_installer" https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
@@ -60,22 +63,22 @@ RUN chmod 777 /opt && chmod a+s /opt \
     && rm -f "$conda_installer" \
     && conda update -yq -nbase conda \
     && conda init bash \
-    && conda env create -n common-torch --file common-torch.yml \
+#    && conda env create -n common-torch --file common-torch.yml \
+    && conda create -n common-torch -c pytorch python=3.7 pytorch\
     && conda clean -a -y \
     && rm -rf ~/.cache/pip/* \
-    && ln -s /opt/miniconda-latest/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+    && sudo ln -s /opt/miniconda-latest/etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
-
-echo  APEXDIR=/opt/apex; \
+RUN source /etc/profile.d/conda.sh \
+    && conda activate common-torch \
+    && echo  APEXDIR=/opt/apex; \
       APEXCOMMIT=e2083df5eb96643c61613b9df48dd4eea6b07690; \
-
       mkdir $APEXDIR; \
       chmod 777 $APEXDIR; \
       cd $APEXDIR; \
       wget https://github.com/NVIDIA/apex/archive/$APEXCOMMIT.zip; \
       unzip $APEXCOMMIT.zip; \
       mv apex-$APEXCOMMIT apex; cd apex; \
-      conda activate common-torch; \
       pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 
 

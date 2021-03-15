@@ -28,8 +28,6 @@ dependencies:
   - cffi=1.14.5=py37hc58025e_0
   - chardet=4.0.0=py37h89c1867_1
   - cryptography=3.4.5=py37h5d9358c_1
-  - cudatoolkit=10.2.89=h8f6ccaa_8
-  - cudnn=7.6.5=cuda10.2_0
   - cxxfilt=0.2.2=py37hcd2ae1e_2
   - cycler=0.10.0=py_2
   - dbus=1.13.6=hfdff14a_1
