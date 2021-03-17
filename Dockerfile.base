@@ -1,5 +1,5 @@
-ARG CUDA=cuda:10.2-devel-ubuntu18.04
-FROM nvidia/$CUDA
+ARG PYTORCH=pytorch:1.8.0-cuda11.1-cudnn8-devel
+FROM pytorch/$PYTORCH
 SHELL ["/bin/bash", "--login", "-c"]
 
 ENV TZ=Europe/Berlin
@@ -30,31 +30,21 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     software-properties-common \
 && apt-get clean
 
-ENV PATH="/opt/miniconda-latest/bin:${PATH}"
-ENV CONDA_DIR="/opt/miniconda-latest" \
-    PATH="/opt/miniconda-latest/bin:$PATH"
 
-COPY ./common-torch.yml /opt
+RUN chmod -Rv 777 /opt \
+  && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
-RUN chmod 777 /opt && chmod a+s /opt && cd /opt \
-    && echo "Downloading Miniconda installer ..." \
-    && conda_installer="/tmp/miniconda.sh" \
-    && curl -fsSL --retry 5 -o "$conda_installer" https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && bash "$conda_installer" -b -p /opt/miniconda-latest \
-    && rm -f "$conda_installer" \
-    && conda update -yq -nbase conda \
-    && conda init bash \
-    && conda env create -n common-torch --file common-torch.yml \
-    && conda clean -a -y \
-    && rm -rf ~/.cache/pip/* \
-    && ln -s /opt/miniconda-latest/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+COPY environment.yml /opt
+RUN chmod 777 /opt/environment.yml \
+  && conda env update -n base --file /opt/environment.yml \
+  && conda clean -a -y
 
 # Install Nvidia-Apex
 ARG APEXDIR=/opt/apex
 ARG APEXCOMMIT=e2083df5eb96643c61613b9df48dd4eea6b07690
 
 RUN source /etc/profile.d/conda.sh \
-    && conda activate common-torch \
+    && conda activate \
     && mkdir $APEXDIR \
     && chmod 777 $APEXDIR \
     && cd $APEXDIR \
@@ -67,7 +57,9 @@ RUN source /etc/profile.d/conda.sh \
 RUN useradd -m user \
   && yes password | passwd user \
   && chmod -R 777 /home/user \
-  && echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user
+  && sudo chmod 777 /workspace \
+  && echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user \
+  && echo "source /etc/profile.d/conda.sh" > /home/user/.bashrc
 
 USER user
 
