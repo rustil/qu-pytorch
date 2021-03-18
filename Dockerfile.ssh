@@ -1,9 +1,5 @@
 FROM rustil/qu-pytorch:base
-
-RUN useradd -m user \
-  && yes password | passwd user \
-  && chmod -R a+rw /home/user
-
+USER root
 RUN ( \
     echo 'LogLevel DEBUG2'; \
     echo 'PermitRootLogin no'; \

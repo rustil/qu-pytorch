@@ -30,10 +30,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     software-properties-common \
 && apt-get clean
 
-
-RUN chmod -Rv 777 /opt \
-  && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
-
 COPY environment.yml /opt
 RUN chmod 777 /opt/environment.yml \
   && conda env update -n base --file /opt/environment.yml \
@@ -43,7 +39,8 @@ RUN chmod 777 /opt/environment.yml \
 ARG APEXDIR=/opt/apex
 ARG APEXCOMMIT=e2083df5eb96643c61613b9df48dd4eea6b07690
 
-RUN source /etc/profile.d/conda.sh \
+RUN ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh \
+    && source /etc/profile.d/conda.sh \
     && conda activate \
     && mkdir $APEXDIR \
     && chmod 777 $APEXDIR \
@@ -52,7 +49,9 @@ RUN source /etc/profile.d/conda.sh \
     && unzip $APEXCOMMIT.zip \
     && rm $APEXCOMMIT.zip \
     && mv apex-$APEXCOMMIT apex && cd apex \
-    && pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+    && pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./ \
+    && pip cache purge \
+    && conda clean -a -y
 
 RUN useradd -m user \
   && yes password | passwd user \
