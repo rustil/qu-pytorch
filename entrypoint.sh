@@ -1,5 +1,5 @@
 #!/bin/bash --login
 set -e
 
-conda activate
+conda activate common-torch
 exec "$@"

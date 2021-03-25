@@ -39,7 +39,7 @@ pip install nvgpu comet-ml
 Additionally, nvidia's APEX is installed by something like (not in `environment.yml`):
 
 ```
-conda activate
+conda activate common-torch
 git clone https://github.com/NVIDIA/apex
 cd apex
 pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./

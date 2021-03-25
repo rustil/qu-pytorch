@@ -1,0 +1,79 @@
+ARG NVIDIA=cuda:11.1.1-cudnn8-devel
+FROM nvidia/$NVIDIA
+SHELL ["/bin/bash", "--login", "-c"]
+
+ENV TZ=Europe/Berlin
+
+# To solve invoke-rc.d error for openssh
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+  && printf '#!/bin/sh\nexit 0' > /usr/sbin/policy-rc.d \
+  && apt-get update \
+  && apt-get install -y software-properties-common \
+  && add-apt-repository ppa:ubuntu-toolchain-r/test \
+  && apt-get update \
+  && apt-get install -y ssh \
+      gcc-8 \
+      g++-8 \
+      cmake \
+      wget \
+      tmux \
+      clang \
+      rsync \
+      tar \
+      dirmngr\
+      unzip \
+      curl \
+      sudo \
+      nano \
+      libjpeg-dev \
+      libpng-dev \
+  && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8 \
+  &&  apt-get install --no-install-recommends -y \
+      software-properties-common \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY environment.yml /opt
+ENV PATH="/opt/conda/bin:${PATH}"
+RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+ && chmod +x ~/miniconda.sh \
+ && ~/miniconda.sh -b -p /opt/conda \
+ && rm ~/miniconda.sh \
+ && conda env create -n common-torch --file /opt/environment.yml \
+ && conda install -y -c pytorch -n common-torch magma-cuda100 \
+ && conda clean -ya \
+ && chmod -R 777 /opt/ \
+ && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+
+ENV PATH /opt/conda/bin:$PATH
+
+# Install Nvidia-Apex
+ARG APEXDIR=/opt/apex
+ARG APEXCOMMIT=e2083df5eb96643c61613b9df48dd4eea6b07690
+
+RUN source /etc/profile.d/conda.sh \
+    && conda activate common-torch \
+    && mkdir $APEXDIR \
+    && chmod 777 $APEXDIR \
+    && cd $APEXDIR \
+    && wget https://github.com/NVIDIA/apex/archive/$APEXCOMMIT.zip \
+    && unzip $APEXCOMMIT.zip \
+    && rm $APEXCOMMIT.zip \
+    && mv apex-$APEXCOMMIT apex && cd apex \
+    && pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./ \
+    && pip cache purge \
+    && conda clean -a -y
+
+RUN useradd -m user \
+  && yes password | passwd user \
+  && chmod -R 777 /home/user \
+  && sudo mkdir /workspace && chmod 777 /workspace \
+  && echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user \
+  && echo "source /etc/profile.d/conda.sh && conda activate common-torch" > /home/user/.bashrc
+
+USER user
+
+COPY ./entrypoint.sh /usr/local/bin
+RUN sudo chmod 777 /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
